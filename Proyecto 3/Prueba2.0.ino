@@ -1,5 +1,3 @@
-//Cristopher Sagastume
-//Nicole Prem
 //***************************************************************************************************************************************
 /* Librería para el uso de la pantalla ILI9341 en modo 8 bits
    Basado en el código de martinayotte - https://www.stm32duino.com/viewtopic.php?t=637
@@ -11,6 +9,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <TM4C123GH6PM.h>
+#include <SPI.h>
+#include <SD.h>
 #include "inc/hw_ints.h"
 #include "inc/hw_memmap.h"
 #include "inc/hw_types.h"
@@ -22,8 +22,8 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/timer.h"
 
-#include "bitmaps.h"
-#include "font.h"
+
+//#include "font.h"
 #include "lcd_registers.h"
 
 #define LCD_RST PD_0
@@ -49,13 +49,13 @@ void LCD_Print(String text, int x, int y, int fontSize, int color, int backgroun
 void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
 void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[], int columns, int index, char flip, char offset);
 
-const int SW1 = PA_3;
+const int SW1 = PF_0;
 const int SW2 = PA_6;
-const int SW3 = PA_2;
+const int SW3 = PF_2;
 const int SW4 = PA_7;
-const int SW5 = PA_4;//abajo
-const int SW6 = PA_5; //arriba
-char flagJuego = 0;
+const int SW5 = PF_1;//abajo
+const int SW6 = PE_4; //arriba
+
 char flag = 0;
 int PDD = 0;
 int PDD2 = 0;
@@ -66,14 +66,17 @@ int SW4State = 0;
 int SW5State = 0;
 int SW6State = 0;
 int v = 0;
+int a = 0;
 int count = 0;
 int count2 = 0;
 int flag2 = true;
 int flag3 = true;
 int vida = 120;
 int vida2 = 120;
+int esco1 = 0;
+int esco2 = 0;
 //int daño = 30;
-int r = 180;
+int r = 268;
 
 extern uint8_t fondo[];
 extern uint8_t ryu_img[];
@@ -83,7 +86,8 @@ extern uint8_t suelo[];
 extern uint8_t ryuP[];
 extern uint8_t zangief[];
 extern uint8_t zangiefP[];
-//extern uint8_t Inicio[];
+
+
 
 //***************************************************************************************************************************************
 // Inicialización
@@ -97,20 +101,19 @@ void setup() {
   pinMode(SW6, INPUT_PULLUP);
   SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
   Serial.begin(9600);
+  Serial2.begin(9600);
+  SPI.setModule(0);
+
+
+  pinMode(PA_3, OUTPUT);
+  SD.begin(PA_3);
+
+
   GPIOPadConfigSet(GPIO_PORTB_BASE, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);
   Serial.println("Inicio");
   LCD_Init();
   LCD_Clear(0x00);
 
-  //FillRect(0, 0, 319, 206, 0x421b);
-  String text1 = "Super Mario World!";
-  //LCD_Print(text1, 20, 100, 2, 0xffff, 0x421b);
-  //LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset);
-
-  //LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
-
-  //LCD_Bitmap(0, 0, 320, 240, Inicio);
-  //delay(3000);
 
 
 }
@@ -118,14 +121,14 @@ void setup() {
 // Loop Infinito
 //***************************************************************************************************************************************
 void loop() {
-  LCD_Bitmap(0, 0, 320, 240, fondo); //imprime el fondo
+  LCD_Bitmap(0, 0, 320, 240, fondo);
   count = 0;
   count2 = 0;
   flag2 = true;
   flag3 = false;
-
+  Escribir(3);
   while (flag2 == true) {
-    Serial.println("de nuevo");
+    Serial2.print("1_");
     flag = 0;
     SW1State = digitalRead(SW1);
     SW2State = digitalRead(SW2);
@@ -141,23 +144,23 @@ void loop() {
           flag = 1;
         }
       }
-      //Escoger personaje 1
-      Serial.println("izquierda-arriba");
+      //Serial.println("izquierda-arriba");
       delay(100);
       switch (count) {
         case 0:
           LCD_Bitmap(40, 39, 56, 79, zangief_img);
           count = 1;
+          esco1 = 1;
           break;
         case 1:
           LCD_Bitmap(40, 39, 56, 79, ryu_img);
           count--;
+          esco1 = 2;
           break;
 
 
       }
     }
-    //escoger personaje 2
     else if (SW4State == LOW) {
       while (flag == 0) {
         SW3State = digitalRead(SW3);
@@ -166,16 +169,18 @@ void loop() {
           flag = 1;
         }
       }
-      Serial.println("izquierda-abajo");
+      //Serial.println("izquierda-abajo");
       delay(100);
       switch (count2) {
         case 0:
           LCD_Bitmap(224, 39, 56, 79, zangief_img);
           count2 = 1;
+          esco2 = 1;
           break;
         case 1:
           LCD_Bitmap(224, 39, 56, 79, ryu_img);
           count2--;
+          esco2 = 2;
           break;
 
       }
@@ -190,16 +195,18 @@ void loop() {
           flag = 1;
         }
       }
-      Serial.println("Derecha-arriba");
+      //Serial.println("Derecha-arriba");
       delay(100);
       switch (count) {
         case 0:
           LCD_Bitmap(40, 39, 56, 79, zangief_img);
           count++;
+          esco1 = 1;
           break;
         case 1 :
           LCD_Bitmap(40, 39, 56, 79, ryu_img);
           count = 0;
+          esco1 = 2;
           break;
 
       }
@@ -212,16 +219,18 @@ void loop() {
           flag = 1;
         }
       }
-      Serial.println("derecha-abajo");
+      //Serial.println("derecha-abajo");
       delay(100);
       switch (count2) {
         case 0:
           LCD_Bitmap(224, 39, 56, 79, zangief_img);
           count2++;
+          esco2 = 1;
           break;
         case 1:
           LCD_Bitmap(224, 39, 56, 79, ryu_img);
           count2 = 0;
+          esco2 = 2;
           break;
 
       }
@@ -246,7 +255,6 @@ void loop() {
       }
       PDD2 = 1;
     }
-    //Si ambos jugadores escogen su peleador, se van a la otra pantalla
     if (PDD == 1 and PDD2 == 1) {
       PDD = 0;
       PDD2 = 0;
@@ -259,130 +267,725 @@ void loop() {
   vida = 120;
   vida2 = 120;
   v = 0;
-  r = 180;
+  r = 268;
+  a = 0;
+  //vida (izquierda)
+  FillRect(5, 10, vida, 10, 0xFFE0);
+  //vida (derecha)
+  FillRect(195, 10, vida2, 10, 0xFFE0);
 
   while (flag3 == true) {
+    //1=ryu
+    //2=zangief
+    Serial2.print("2_");
+    if (esco1 == 2 and esco2 == 2) {
+      for (int x = 0; x < 340; x++) {
+        //restar vida (izquierda)
+        FillRect(vida + 6, 10, 60 , 10, 0x0000);
+        //restar vida (derecha)
+        FillRect(194, 10, a, 10, 0x0000);
+        //Serial.println(v);
+        //Serial.println(r);
+        //Serial.println((r - (v + 52)));
+        //Serial.println(vida);
+        //Serial.println(x);
+        int anim2 = (x / 10) % 2;
+        LCD_Sprite(r, 125, 29, 72, ryuS, 2, anim2, 1, 0);
+        //int anim = (x / 30) % 2;
+        LCD_Sprite(v, 125, 29, 72, ryuS, 2, anim2, 0, 0);
+        //ciclo del juego
+        flag = 0;
+        SW5State = digitalRead(SW5);
+        SW6State = digitalRead(SW6);
+        SW1State = digitalRead(SW1);
+        SW2State = digitalRead(SW2);
+        SW3State = digitalRead(SW3);
+        SW4State = digitalRead(SW4);
+        //derecha jugador 1 (arriba)
+        if (SW1State == LOW) {
+          while (flag == 0) {
+            SW1State = digitalRead(SW1);
+            SW2State = digitalRead(SW2);
+            if (SW1State == HIGH) {
+              flag = 1;
+            }
+          }
+          for (int j = 0; j <= 7; j++) {
+            if ((v == 340) or (r - (v + 52)) == 0 ) {
+              v--;
+            }
+            v++;
 
-    if (vida == 0) {
-      Serial.println("terminó");
-      flag2 = true;
-      flag3 = false;
-
-    }
-    for (int x = 0; x < 340; x++) {
-      FillRect(vida + 6, 10, 60 , 10, 0x0000);
-      //FillRect(195, 10, 120, 10, 0x0000);
-      FillRect(5, 10, vida, 10, 0xFFE0);
-      FillRect(195, 10, vida2, 10, 0xFFE0);
-      Serial.println(v);
-      Serial.println(r);
-      Serial.println((r - (v + 52)));
-      Serial.println(vida);
-      Serial.println(x);
-      int anim2 = (x / 10) % 2;
-      LCD_Sprite(r, 130, 40, 70, zangief, 2, anim2, 1, 0); //movimiento del jugador
-      V_line(r-1, 130, 70, 0x00);
-      //int anim = (x / 30) % 2;
-      LCD_Sprite(v, 125, 29, 72, ryuS, 2, anim2, 0, 0);
-      //ciclo del juego
-      flag = 0;
-      SW5State = digitalRead(SW5);
-      SW6State = digitalRead(SW6);
-      SW1State = digitalRead(SW1);
-      SW2State = digitalRead(SW2);
-      //antirebote del jugador 1
-      if (SW1State == LOW) {
-        while (flag == 0) {
-          SW1State = digitalRead(SW1);
-          SW2State = digitalRead(SW2);
-          if (SW1State == HIGH) {
-            flag = 1;
+          }
+          for (int z = 0; z <= v - 1; z++) {
+            V_line(z, 125, 200, 0x0000);
           }
         }
-        v++;
-        v++;
-        v++;
-        v++;
-        v++;
-        v++;
-        v++;
-        v++;
-        if (v == 340) {
-          v--;
-          v--;
-          v--;
-          v--;
-          v--;
-          v--;
-          v--;
-          v--;
-        }
-        LCD_Sprite(v, 125, 29, 72, ryuS, 2, 0, 0, 0);
-        delay(300);
-        LCD_Sprite(v, 125, 29, 72, ryuS, 2, 0, 0, 0);
-        for (int z = 0; z == v; z++) {
-          V_line(z, 125, 200, 0xFFFF);
-        }
-      }
+        //Izquierda jugador 1 (arriba)
+        if (SW3State == LOW) {
+          while (flag == 0) {
+            SW3State = digitalRead(SW3);
+            SW4State = digitalRead(SW4);
+            if (SW3State == HIGH) {
+              flag = 1;
+            }
+          }
+          for (int j = 0; j <= 7; j++) {
+            if ((v == 0) ) {
+              v++;
+            }
+            v--;
 
-      //antirebote del jugador 1
-      if (SW5State == LOW) {
-        while (flag == 0) {
-          SW6State = digitalRead(SW5);
-          SW5State = digitalRead(SW6);
-          if (SW5State == HIGH) {
-            flag = 1;
+          }
+          for (int z = v + 36; z >= (v + 26); z--) {
+            V_line(z, 125, 250, 0x0000);
+          }
+        }
+        //derecha jugador 2 (abajo)
+        if (SW2State == LOW) {
+          while (flag == 0) {
+            SW1State = digitalRead(SW1);
+            SW2State = digitalRead(SW2);
+            if (SW2State == HIGH) {
+              flag = 1;
+            }
+          }
+          //Serial.println(r);
+          for (int j = 0; j <= 7; j++) {
+            if ((r >= 268)) {
+              r--;
+            }
+            r++;
+
+          }
+          for (int z = (r - 10); z <= r; z++) {
+            V_line(z, 60, 140, 0x0000);
+          }
+        }
+        //Izquierda jugador 2 (abajo)
+        if (SW4State == LOW) {
+          while (flag == 0) {
+            SW3State = digitalRead(SW3);
+            SW4State = digitalRead(SW4);
+            if (SW4State == HIGH) {
+              flag = 1;
+            }
+          }
+          //Serial.println("izquierda");
+          for (int j = 0; j <= 7; j++) {
+            if (r - (v + 52) == 0 ) {
+              r++;
+            }
+            //Serial.println(r);
+            r--;
+
+          }
+          for (int z = r + 52; z >= (r + 29); z--) {
+            V_line(z, 60 , 140, 0x0000);
           }
         }
 
-        LCD_Sprite(v, 125, 52, 70, ryuP, 2, 0, 0, 0);
-        delay(120);
-        LCD_Sprite(v, 125, 52, 70, ryuP, 2, 1, 0, 0);
-        for (int x = 29; x <= 50; x++) {
-          V_line(v-1, 125, 150, 0x0000);
-          //delay(15);
-        }
-        delay(15);
-        if ((r - (v + 52)) == 0) {
-
-
-          for (int l = 0; l <= 29; l++) {
-            vida--;
-            if (vida == 0) {
-              Serial.println("terminó");
-              flag2 = true;
-              flag3 = false;
-              x = 335;
+        //Golpe jugador 1 (arriba)
+        if (SW6State == LOW) {
+          while (flag == 0) {
+            SW6State = digitalRead(SW5);
+            SW5State = digitalRead(SW6);
+            if (SW6State == HIGH) {
+              flag = 1;
             }
           }
 
+          LCD_Sprite(v, 125, 52, 70, ryuP, 2, 0, 0, 0);
+          delay(120);
+          LCD_Sprite(v, 125, 52, 70, ryuP, 2, 1, 0, 0);
+          for (int x = v + 49; x >= (v + 26); x--) {
 
-        }
-      }
-
-      //antirebote jugador 2
-      else if (SW6State == LOW) {
-        while (flag == 0) {
-          SW5State = digitalRead(SW5);
-          SW6State = digitalRead(SW6);
-          if (SW6State == HIGH) {
-            flag = 1;
+            V_line(x, 125, 150, 0x0000);
+            //delay(15);
+          }
+          delay(15);
+          if ((r - (v + 52)) == 0) {
+            for (int l = 0; l <= 29; l++) {
+              vida2--;
+              a++;
+              if (vida2 == 0) {
+                Escribir(1);
+                flag2 = true;
+                flag3 = false;
+                x = 335;
+              }
+            }
           }
         }
-        //aumento de contador jugador 2 y encendido de leds
 
-        LCD_Sprite(80, 130, 45, 66, zangiefP, 2, 0, 1, 0);
-        delay(300);
-        LCD_Sprite(80, 130, 45, 66, zangiefP, 2, 1, 1, 0);
-        for (int x = 120; x <= 130; x++) {
-          V_line(x-1, 130, 150, 0x0000);
-          //delay(15);
+        //Golpe jugador 2 (abajo)
+        else if (SW5State == LOW) {
+          while (flag == 0) {
+            SW5State = digitalRead(SW5);
+            SW6State = digitalRead(SW6);
+            if (SW5State == HIGH) {
+              flag = 1;
+            }
+          }
+          //aumento de contador jugador 2 y encendido de leds
+
+          LCD_Sprite(r, 125, 52, 70, ryuP, 2, 0, 1, 0);
+          delay(300);
+          LCD_Sprite(r, 125, 52, 70, ryuP, 2, 1, 1, 0);
+          for (int x = r + 52; x >= r + 26; x--) {
+
+            V_line(x, 125, 150, 0x0000);
+            //delay(15);
+          }
+          delay(15);
+          if ((r - (v + 52)) == 0) {
+            for (int l = 0; l <= 29; l++) {
+              vida--;
+
+              if (vida == 0) {
+                Escribir(2);
+                flag2 = true;
+                flag3 = false;
+                x = 335;
+              }
+            }
+          }
         }
       }
     }
-    Serial.println("salio");
+
+    else if (esco1 == 1 and esco2 == 2) {
+      for (int x = 0; x < 340; x++) {
+        //restar vida (izquierda)
+        FillRect(vida + 6, 10, 60 , 10, 0x0000);
+        //restar vida (derecha)
+        FillRect(194, 10, a, 10, 0x0000);
+        //Serial.println(v);
+        //Serial.println(r);
+        //Serial.println((r - (v + 52)));
+        //Serial.println(vida);
+        //Serial.println(x);
+        int anim2 = (x / 10) % 2;
+        LCD_Sprite(r, 125, 29, 72, ryuS, 2, anim2, 1, 0);
+        //int anim = (x / 30) % 2;
+        LCD_Sprite(v, 130, 40, 70, zangief, 2, anim2, 0, 0);
+        //ciclo del juego
+        flag = 0;
+        SW5State = digitalRead(SW5);
+        SW6State = digitalRead(SW6);
+        SW1State = digitalRead(SW1);
+        SW2State = digitalRead(SW2);
+        SW3State = digitalRead(SW3);
+        SW4State = digitalRead(SW4);
+        //derecha jugador 1 (arriba)
+        if (SW1State == LOW) {
+          while (flag == 0) {
+            SW1State = digitalRead(SW1);
+            SW2State = digitalRead(SW2);
+            if (SW1State == HIGH) {
+              flag = 1;
+            }
+          }
+          for (int j = 0; j <= 7; j++) {
+            if ((v == 340) or (r - (v + 52)) == 0 ) {
+              v--;
+            }
+            v++;
+
+          }
+          for (int z = 0; z <= v - 1; z++) {
+            V_line(z, 125, 200, 0x0000);
+          }
+        }
+        //Izquierda jugador 1 (arriba)
+        if (SW3State == LOW) {
+          while (flag == 0) {
+            SW3State = digitalRead(SW3);
+            SW4State = digitalRead(SW4);
+            if (SW3State == HIGH) {
+              flag = 1;
+            }
+          }
+          for (int j = 0; j <= 7; j++) {
+            if ((v == 0) ) {
+              v++;
+            }
+            v--;
+
+          }
+          for (int z = v + 52; z >= (v + 40); z--) {
+            V_line(z, 125, 250, 0x0000);
+          }
+        }
+        //derecha jugador 2 (abajo)
+        if (SW2State == LOW) {
+          while (flag == 0) {
+            SW1State = digitalRead(SW1);
+            SW2State = digitalRead(SW2);
+            if (SW2State == HIGH) {
+              flag = 1;
+            }
+          }
+          //Serial.println(r);
+          for (int j = 0; j <= 7; j++) {
+            if ((r >= 268)) {
+              r--;
+            }
+            r++;
+
+          }
+          for (int z = (r - 10); z <= r; z++) {
+            V_line(z, 60, 140, 0x0000);
+          }
+        }
+        //Izquierda jugador 2 (abajo)
+        if (SW4State == LOW) {
+          while (flag == 0) {
+            SW3State = digitalRead(SW3);
+            SW4State = digitalRead(SW4);
+            if (SW4State == HIGH) {
+              flag = 1;
+            }
+          }
+          //Serial.println("izquierda");
+          for (int j = 0; j <= 7; j++) {
+            if (r - (v + 52) == 0 ) {
+              r++;
+            }
+            //Serial.println(r);
+            r--;
+
+          }
+          for (int z = r + 52; z >= (r + 29); z--) {
+            V_line(z, 60 , 140, 0x0000);
+          }
+        }
+
+        //Golpe jugador 1 (arriba)
+        if (SW6State == LOW) {
+          while (flag == 0) {
+            SW6State = digitalRead(SW5);
+            SW5State = digitalRead(SW6);
+            if (SW6State == HIGH) {
+              flag = 1;
+            }
+          }
+
+          LCD_Sprite(v, 130, 45, 66, zangiefP, 2, 0, 0, 0);
+          delay(120);
+          LCD_Sprite(v, 130, 45, 66, zangiefP, 2, 1, 0, 0);
+          for (int x = v + 52; x >= (v + 40); x--) {
+
+            V_line(x, 125, 150, 0x0000);
+            //delay(15);
+          }
+          delay(15);
+          if ((r - (v + 52)) == 0) {
+            for (int l = 0; l <= 29; l++) {
+              vida2--;
+              a++;
+              if (vida2 == 0) {
+                Escribir(1);
+                flag2 = true;
+                flag3 = false;
+                x = 335;
+              }
+            }
+          }
+        }
+
+        //Golpe jugador 2 (abajo)
+        else if (SW5State == LOW) {
+          while (flag == 0) {
+            SW5State = digitalRead(SW5);
+            SW6State = digitalRead(SW6);
+            if (SW5State == HIGH) {
+              flag = 1;
+            }
+          }
+          //aumento de contador jugador 2 y encendido de leds
+
+          LCD_Sprite(r, 125, 52, 70, ryuP, 2, 0, 1, 0);
+          delay(300);
+          LCD_Sprite(r, 125, 52, 70, ryuP, 2, 1, 1, 0);
+          for (int x = r + 54; x >= r + 26; x--) {
+
+            V_line(x, 120, 180, 0x0000);
+            //delay(15);
+          }
+          delay(15);
+          if ((r - (v + 52)) == 0) {
+            for (int l = 0; l <= 29; l++) {
+              vida--;
+
+              if (vida == 0) {
+                Escribir(2);
+                flag2 = true;
+                flag3 = false;
+                x = 335;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    else if (esco1 == 1 and esco2 == 1) {
+      for (int x = 0; x < 340; x++) {
+        //restar vida (izquierda)
+        FillRect(vida + 6, 10, 60 , 10, 0x0000);
+        //restar vida (derecha)
+        FillRect(194, 10, a, 10, 0x0000);
+        //Serial.println(v);
+        //Serial.println(r);
+        //Serial.println((r - (v + 52)));
+        //Serial.println(vida);
+        //Serial.println(x);
+        int anim2 = (x / 10) % 2;
+        LCD_Sprite(r, 130, 40, 70, zangief, 2, anim2, 1, 0);
+        //int anim = (x / 30) % 2;
+        LCD_Sprite(v, 130, 40, 70, zangief, 2, anim2, 0, 0);
+        //ciclo del juego
+        flag = 0;
+        SW5State = digitalRead(SW5);
+        SW6State = digitalRead(SW6);
+        SW1State = digitalRead(SW1);
+        SW2State = digitalRead(SW2);
+        SW3State = digitalRead(SW3);
+        SW4State = digitalRead(SW4);
+        //derecha jugador 1 (arriba)
+        if (SW1State == LOW) {
+          while (flag == 0) {
+            SW1State = digitalRead(SW1);
+            SW2State = digitalRead(SW2);
+            if (SW1State == HIGH) {
+              flag = 1;
+            }
+          }
+          for (int j = 0; j <= 7; j++) {
+            if ((v == 340) or (r - (v + 52)) == 0 ) {
+              v--;
+            }
+            v++;
+
+          }
+          for (int z = 0; z <= v - 1; z++) {
+            V_line(z, 125, 200, 0x0000);
+          }
+        }
+        //Izquierda jugador 1 (arriba)
+        if (SW3State == LOW) {
+          while (flag == 0) {
+            SW3State = digitalRead(SW3);
+            SW4State = digitalRead(SW4);
+            if (SW3State == HIGH) {
+              flag = 1;
+            }
+          }
+          for (int j = 0; j <= 7; j++) {
+            if ((v == 0) ) {
+              v++;
+            }
+            v--;
+
+          }
+          for (int z = v + 52; z >= (v + 40); z--) {
+            V_line(z, 125, 250, 0x0000);
+          }
+        }
+        //derecha jugador 2 (abajo)
+        if (SW2State == LOW) {
+          while (flag == 0) {
+            SW1State = digitalRead(SW1);
+            SW2State = digitalRead(SW2);
+            if (SW2State == HIGH) {
+              flag = 1;
+            }
+          }
+          //Serial.println(r);
+          for (int j = 0; j <= 7; j++) {
+            if ((r >= 268)) {
+              r--;
+            }
+            r++;
+
+          }
+          for (int z = (r - 10); z <= r; z++) {
+            V_line(z, 60, 140, 0x0000);
+          }
+        }
+        //Izquierda jugador 2 (abajo)
+        if (SW4State == LOW) {
+          while (flag == 0) {
+            SW3State = digitalRead(SW3);
+            SW4State = digitalRead(SW4);
+            if (SW4State == HIGH) {
+              flag = 1;
+            }
+          }
+          //Serial.println("izquierda");
+          for (int j = 0; j <= 7; j++) {
+            if (r - (v + 52) == 0 ) {
+              r++;
+            }
+            //Serial.println(r);
+            r--;
+
+          }
+          for (int z = r + 52; z >= (r + 40); z--) {
+            V_line(z, 60 , 140, 0x0000);
+          }
+        }
+
+        //Golpe jugador 1 (arriba)
+        if (SW6State == LOW) {
+          while (flag == 0) {
+            SW6State = digitalRead(SW5);
+            SW5State = digitalRead(SW6);
+            if (SW6State == HIGH) {
+              flag = 1;
+            }
+          }
+
+          LCD_Sprite(v, 130, 45, 66, zangiefP, 2, 0, 0, 0);
+          delay(120);
+          LCD_Sprite(v, 130, 45, 66, zangiefP, 2, 1, 0, 0);
+          for (int x = v + 52; x >= v + 40; x--) {
+
+            V_line(x, 130, 150, 0x0000);
+            //delay(15);
+          }
+          delay(15);
+          if ((r - (v + 52)) == 0) {
+            for (int l = 0; l <= 29; l++) {
+              vida2--;
+              a++;
+              if (vida2 == 0) {
+                Escribir(1);
+                flag2 = true;
+                flag3 = false;
+                x = 335;
+              }
+            }
+          }
+        }
+
+        //Golpe jugador 2 (abajo)
+        else if (SW5State == LOW) {
+          while (flag == 0) {
+            SW5State = digitalRead(SW5);
+            SW6State = digitalRead(SW6);
+            if (SW5State == HIGH) {
+              flag = 1;
+            }
+          }
+          //aumento de contador jugador 2 y encendido de leds
+
+          LCD_Sprite(r, 130, 45, 66, zangiefP, 2, 0, 1, 0);
+          delay(300);
+          LCD_Sprite(r, 130, 45, 66, zangiefP, 2, 1, 1, 0);
+          for (int x = r + 52; x >= r + 40; x--) {
+
+            V_line(x, 130, 150, 0x0000);
+            //delay(15);
+          }
+          delay(15);
+          if ((r - (v + 52)) == 0) {
+            for (int l = 0; l <= 29; l++) {
+              vida--;
+
+              if (vida == 0) {
+                Escribir(2);
+                flag2 = true;
+                flag3 = false;
+                x = 335;
+              }
+            }
+          }
+        }
+      }
+
+
+    }
+
+    else {
+      for (int x = 0; x < 340; x++) {
+        //restar vida (izquierda)
+        FillRect(vida + 6, 10, 60 , 10, 0x0000);
+        //restar vida (derecha)
+        FillRect(194, 10, a, 10, 0x0000);
+        //Serial.println(v);
+        //Serial.println(r);
+        //Serial.println((r - (v + 52)));
+        //Serial.println(vida);
+        //Serial.println(x);
+        int anim2 = (x / 10) % 2;
+        LCD_Sprite(r, 130, 40, 70, zangief, 2, anim2, 1, 0);
+        //int anim = (x / 30) % 2;
+        LCD_Sprite(v, 125, 29, 72, ryuS, 2, anim2, 0, 0);
+        //ciclo del juego
+        flag = 0;
+        SW5State = digitalRead(SW5);
+        SW6State = digitalRead(SW6);
+        SW1State = digitalRead(SW1);
+        SW2State = digitalRead(SW2);
+        SW3State = digitalRead(SW3);
+        SW4State = digitalRead(SW4);
+        //derecha jugador 1 (arriba)
+        if (SW1State == LOW) {
+          while (flag == 0) {
+            SW1State = digitalRead(SW1);
+            SW2State = digitalRead(SW2);
+            if (SW1State == HIGH) {
+              flag = 1;
+            }
+          }
+          for (int j = 0; j <= 7; j++) {
+            if ((v == 340) or (r - (v + 52)) == 0 ) {
+              v--;
+            }
+            v++;
+
+          }
+          for (int z = 0; z <= v - 1; z++) {
+            V_line(z, 125, 200, 0x0000);
+          }
+        }
+        //Izquierda jugador 1 (arriba)
+        if (SW3State == LOW) {
+          while (flag == 0) {
+            SW3State = digitalRead(SW3);
+            SW4State = digitalRead(SW4);
+            if (SW3State == HIGH) {
+              flag = 1;
+            }
+          }
+          for (int j = 0; j <= 7; j++) {
+            if ((v == 0) ) {
+              v++;
+            }
+            v--;
+
+          }
+          for (int z = v + 36; z >= (v + 26); z--) {
+            V_line(z, 125, 250, 0x0000);
+          }
+        }
+        //derecha jugador 2 (abajo)
+        if (SW2State == LOW) {
+          while (flag == 0) {
+            SW1State = digitalRead(SW1);
+            SW2State = digitalRead(SW2);
+            if (SW2State == HIGH) {
+              flag = 1;
+            }
+          }
+          //Serial.println(r);
+          for (int j = 0; j <= 7; j++) {
+            if ((r >= 268)) {
+              r--;
+            }
+            r++;
+
+          }
+          for (int z = (r - 10); z <= r; z++) {
+            V_line(z, 60, 140, 0x0000);
+          }
+        }
+        //Izquierda jugador 2 (abajo)
+        if (SW4State == LOW) {
+          while (flag == 0) {
+            SW3State = digitalRead(SW3);
+            SW4State = digitalRead(SW4);
+            if (SW4State == HIGH) {
+              flag = 1;
+            }
+          }
+          //Serial.println("izquierda");
+          for (int j = 0; j <= 7; j++) {
+            if (r - (v + 52) == 0 ) {
+              r++;
+            }
+            //Serial.println(r);
+            r--;
+
+          }
+          for (int z = r + 52; z >= (r + 40); z--) {
+            V_line(z, 60 , 140, 0x0000);
+          }
+        }
+
+        //Golpe jugador 1 (arriba)
+        if (SW6State == LOW) {
+          while (flag == 0) {
+            SW6State = digitalRead(SW5);
+            SW5State = digitalRead(SW6);
+            if (SW6State == HIGH) {
+              flag = 1;
+            }
+          }
+
+          LCD_Sprite(v, 125, 52, 70, ryuP, 2, 0, 0, 0);
+          delay(120);
+          LCD_Sprite(v, 125, 52, 70, ryuP, 2, 1, 0, 0);
+          for (int x = v + 49; x >= (v + 26); x--) {
+
+            V_line(x, 125, 150, 0x0000);
+            //delay(15);
+          }
+          delay(15);
+          if ((r - (v + 52)) == 0) {
+            for (int l = 0; l <= 29; l++) {
+              vida2--;
+              a++;
+              if (vida2 == 0) {
+                Escribir(1);
+                flag2 = true;
+                flag3 = false;
+                x = 335;
+              }
+            }
+          }
+        }
+
+        //Golpe jugador 2 (abajo)
+        else if (SW5State == LOW) {
+          while (flag == 0) {
+            SW5State = digitalRead(SW5);
+            SW6State = digitalRead(SW6);
+            if (SW5State == HIGH) {
+              flag = 1;
+            }
+          }
+          //aumento de contador jugador 2 y encendido de leds
+
+          LCD_Sprite(r, 130, 45, 66, zangiefP, 2, 0, 1, 0);
+          delay(300);
+          LCD_Sprite(r, 130, 45, 66, zangiefP, 2, 1, 1, 0);
+          for (int x = r + 52; x >= r + 40; x--) {
+
+            V_line(x, 130, 150, 0x0000);
+            //delay(15);
+          }
+          delay(15);
+          if ((r - (v + 52)) == 0) {
+            for (int l = 0; l <= 29; l++) {
+              vida--;
+
+              if (vida == 0) {
+                Escribir(2);
+                flag2 = true;
+                flag3 = false;
+                x = 335;
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
+
 //***************************************************************************************************************************************
 // Función para inicializar LCD
 //***************************************************************************************************************************************
@@ -579,12 +1182,12 @@ void V_line(unsigned int x, unsigned int y, unsigned int l, unsigned int c) {
 //***************************************************************************************************************************************
 // Función para dibujar un rectángulo - parámetros ( coordenada x, cordenada y, ancho, alto, color)
 //***************************************************************************************************************************************
-void Rect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int c) {
-  H_line(x  , y  , w, c);
-  H_line(x  , y + h, w, c);
-  V_line(x  , y  , h, c);
-  V_line(x + w, y  , h, c);
-}
+//void Rect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int c) {
+//  H_line(x  , y  , w, c);
+//  H_line(x  , y + h, w, c);
+//  V_line(x  , y  , h, c);
+//  V_line(x + w, y  , h, c);
+//}
 //***************************************************************************************************************************************
 // Función para dibujar un rectángulo relleno - parámetros ( coordenada x, cordenada y, ancho, alto, color)
 //***************************************************************************************************************************************
@@ -598,54 +1201,7 @@ void FillRect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, un
 //***************************************************************************************************************************************
 // Función para dibujar texto - parámetros ( texto, coordenada x, cordenada y, color, background)
 //***************************************************************************************************************************************
-void LCD_Print(String text, int x, int y, int fontSize, int color, int background) {
-  int fontXSize ;
-  int fontYSize ;
-
-  if (fontSize == 1) {
-    fontXSize = fontXSizeSmal ;
-    fontYSize = fontYSizeSmal ;
-  }
-  if (fontSize == 2) {
-    fontXSize = fontXSizeBig ;
-    fontYSize = fontYSizeBig ;
-  }
-
-  char charInput ;
-  int cLength = text.length();
-  Serial.println(cLength, DEC);
-  int charDec ;
-  int c ;
-  int charHex ;
-  char char_array[cLength + 1];
-  text.toCharArray(char_array, cLength + 1) ;
-  for (int i = 0; i < cLength ; i++) {
-    charInput = char_array[i];
-    Serial.println(char_array[i]);
-    charDec = int(charInput);
-    digitalWrite(LCD_CS, LOW);
-    SetWindows(x + (i * fontXSize), y, x + (i * fontXSize) + fontXSize - 1, y + fontYSize );
-    long charHex1 ;
-    for ( int n = 0 ; n < fontYSize ; n++ ) {
-      if (fontSize == 1) {
-        charHex1 = pgm_read_word_near(smallFont + ((charDec - 32) * fontYSize) + n);
-      }
-      if (fontSize == 2) {
-        charHex1 = pgm_read_word_near(bigFont + ((charDec - 32) * fontYSize) + n);
-      }
-      for (int t = 1; t < fontXSize + 1 ; t++) {
-        if (( charHex1 & (1 << (fontXSize - t))) > 0 ) {
-          c = color ;
-        } else {
-          c = background ;
-        }
-        LCD_DATA(c >> 8);
-        LCD_DATA(c);
-      }
-    }
-    digitalWrite(LCD_CS, HIGH);
-  }
-}
+//
 //***************************************************************************************************************************************
 // Función para dibujar una imagen a partir de un arreglo de colores (Bitmap) Formato (Color 16bit R 5bits G 6bits B 5bits)
 //***************************************************************************************************************************************
@@ -708,4 +1264,41 @@ void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[], int
 
   }
   digitalWrite(LCD_CS, HIGH);
+}
+void Escribir(int dato) {
+  if (dato == 3) { //si el dato igual a 3 se abre el archivo .txt de pikachu
+    File dataFile = SD.open("HIGHSC~1.txt");
+    if (dataFile) {
+      while (dataFile.available()) {
+        Serial.write(dataFile.read());
+      }
+      dataFile.close();
+    }
+    else {
+      Serial.println("error opening HIGHSC~1.TXT");
+    }
+  }
+
+  if (dato == 1) { //si el dato igual a 3 se abre el archivo .txt de pikachu
+    File dataFile = SD.open("HIGHSC~1.txt", FILE_WRITE);
+    if (dataFile) {
+      dataFile.println("El ganador fue J1");
+      dataFile.close();
+    }
+    else {
+      Serial.println("error opening PIKA.txt");
+    }
+
+  }
+  if (dato == 2) { //si el dato igual a 3 se abre el archivo .txt de pikachu
+    File dataFile = SD.open("HIGHSC~1.txt", FILE_WRITE);
+    if (dataFile) {
+      dataFile.println("El ganador fue J2");
+      dataFile.close();
+    }
+    else {
+      Serial.println("error opening PIKA.txt");
+    }
+
+  }
 }
