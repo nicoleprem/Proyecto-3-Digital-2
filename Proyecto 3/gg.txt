@@ -1,0 +1,113 @@
+count = 0;
+  count2 = 0;
+  while (true) {
+    flag = 0;
+    SW1State = digitalRead(SW1);
+    SW2State = digitalRead(SW2);
+    SW3State = digitalRead(SW3);
+    SW4State = digitalRead(SW4);
+    if (SW3State == LOW) {
+      while (flag == 0) {
+        SW3State = digitalRead(SW3);
+        SW4State = digitalRead(SW4);
+        if (SW3State == HIGH) {
+          flag = 1;
+        }
+      }
+      Serial.println("izquierda-arriba");
+      delay(100);
+      switch (count) {
+        case 0:
+          LCD_Bitmap(40, 39, 56, 79, zangief_img);
+          count = 2;
+          break;
+        case 1:
+          LCD_Bitmap(40, 39, 56, 79, ryu_img);
+          count--;
+          break;
+        case 2:
+          LCD_Bitmap(40, 39, 56, 79, Chun_img);
+          count--;
+          break;
+
+      }
+    }
+    else if (SW4State == LOW) {
+      while (flag == 0) {
+        SW3State = digitalRead(SW3);
+        SW4State = digitalRead(SW4);
+        if (SW4State == HIGH) {
+          flag = 1;
+        }
+      }
+      Serial.println("izquierda-abajo");
+      delay(100);
+      switch (count2) {
+        case 0:
+          LCD_Bitmap(224, 39, 56, 79, zangief_img);
+          count2 = 2;
+          break;
+        case 1:
+          LCD_Bitmap(224, 39, 56, 79, ryu_img);
+          count2--;
+          break;
+        case 2:
+          LCD_Bitmap(224, 39, 56, 79, Chun_img);
+          count2--;
+          break;
+      }
+    }
+
+
+    else if (SW1State == LOW) {
+      while (flag == 0) {
+        SW1State = digitalRead(SW1);
+        SW2State = digitalRead(SW2);
+        if (SW1State == HIGH) {
+          flag = 1;
+        }
+      }
+      Serial.println("Derecha-arriba");
+      delay(100);
+      switch (count) {
+        case 0:
+          LCD_Bitmap(40, 39, 56, 79, Chun_img);
+          count++;
+          break;
+        case 1 :
+          LCD_Bitmap(40, 39, 56, 79, zangief_img);
+          count++;
+          break;
+        case 2:
+          LCD_Bitmap(40, 39, 56, 79, ryu_img);
+          count = 0;
+          break;
+      }
+    }
+    else if (SW2State == LOW) {
+      while (flag == 0) {
+        SW1State = digitalRead(SW1);
+        SW2State = digitalRead(SW2);
+        if (SW2State == HIGH) {
+          flag = 1;
+        }
+      }
+      Serial.println("derecha-abajo");
+      delay(100);
+      switch (count2) {
+        case 0:
+          LCD_Bitmap(224, 39, 56, 79, Chun_img);
+          count2++;
+          break;
+        case 1:
+          LCD_Bitmap(224, 39, 56, 79, zangief_img);
+          count2++;
+          break;
+        case 2:
+          LCD_Bitmap(224, 39, 56, 79, ryu_img);
+          count2 = 0;
+          break;
+      }
+    }
+    if (
+  }

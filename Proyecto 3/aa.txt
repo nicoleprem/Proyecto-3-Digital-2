@@ -1,0 +1,51 @@
+for (int x = 0; x < 340; x++) {
+    int anim2 = (x / 10) % 2;
+    LCD_Sprite(80, 130, 40, 70, zangief, 2, anim2, 1, 0);
+    //int anim = (x / 30) % 2;
+    LCD_Sprite(v, 125, 29, 72, ryuS, 2, anim2, 0, 0);
+    //ciclo del juego
+    flag = 0;
+    SW1State = digitalRead(SW1);
+    SW2State = digitalRead(SW2);
+    //antirebote del jugador 1
+    if (SW1State == LOW) {
+      while (flag == 0) {
+        SW1State = digitalRead(SW1);
+        SW2State = digitalRead(SW2);
+        if (SW1State == HIGH) {
+          flag = 1;
+        }
+      }
+
+            LCD_Sprite(0, 125, 52, 70, ryuP, 2, 0, 0, 0);
+            delay(120);
+            LCD_Sprite(0, 125, 52, 70, ryuP, 2, 1, 0, 0);
+            for (int x = 29; x <= 50; x++) {
+      
+              V_line(x, 125, 150, 0x0000);
+              //delay(15);
+            }
+            delay(15);
+
+    }
+    //antirebote jugador 2
+    else if (SW2State == LOW) {
+      while (flag == 0) {
+        SW1State = digitalRead(SW1);
+        SW2State = digitalRead(SW2);
+        if (SW2State == HIGH) {
+          flag = 1;
+        }
+      }
+      //aumento de contador jugador 2 y encendido de leds
+
+            LCD_Sprite(80, 130, 45, 66, zangiefP, 2, 0, 1, 0);
+            delay(300);
+            LCD_Sprite(80, 130, 45, 66, zangiefP, 2, 1, 1, 0);
+            for (int x = 120; x <= 130; x++) {
+      
+              V_line(x, 130, 150, 0x0000);
+              //delay(15);
+            }
+    }
+  }
