@@ -23,6 +23,7 @@
 #include "bitmaps.h"
 #include "font.h"
 #include "lcd_registers.h"
+#include "musica.h" 
 
 #define LCD_RST PD_0
 #define LCD_CS PD_1
@@ -83,6 +84,12 @@ extern uint8_t zangief[];
 extern uint8_t zangiefP[];
 //extern uint8_t Inicio[];
 
+//Música
+int tempo = 140;
+int buzzer = PF_2;
+int wholenote = (60000 * 4) / tempo;
+int divider = 0, noteDuration = 0;
+
 //***************************************************************************************************************************************
 // Inicialización
 //***************************************************************************************************************************************
@@ -121,6 +128,19 @@ void loop() {
   count2 = 0;
   flag2 = true;
   flag3 = false;
+  int notes = sizeof(GreenHill) / sizeof(GreenHill[0]) / 2;
+    for (int thisNote = 0; thisNote < notes * 2; thisNote = thisNote + 2) {
+
+    // calculates the duration of each note
+    divider = GreenHill[thisNote + 1];
+    if (divider > 0) {
+      // regular note, just proceed
+      noteDuration = (wholenote) / divider;
+    } else if (divider < 0) {
+      // dotted notes are represented with negative durations!!
+      noteDuration = (wholenote) / abs(divider);
+      noteDuration *= 1.5; // increases the duration in half for dotted notes
+    }
 
   while (flag2 == true) {
     Serial.println("de nuevo");
@@ -244,6 +264,8 @@ void loop() {
       }
       PDD2 = 1;
     }
+       
+    
     //Si ambos jugadores escogen su peleador, se van a la otra pantalla
     if (PDD == 1 and PDD2 == 1) {
       PDD = 0;
@@ -380,6 +402,10 @@ void loop() {
     }
     Serial.println("salio");
   }
+   tone(buzzer, GreenHill[thisNote], noteDuration * 0.9);
+    delay(noteDuration);
+    noTone(buzzer);
+}
 }
 //***************************************************************************************************************************************
 // Función para inicializar LCD
