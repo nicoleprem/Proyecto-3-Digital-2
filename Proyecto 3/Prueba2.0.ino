@@ -1286,7 +1286,7 @@ void Escribir(int dato) {
       dataFile.close();
     }
     else {
-      Serial.println("error opening PIKA.txt");
+      Serial.println("error opening HIGHSC~1.txt");
     }
 
   }
@@ -1297,7 +1297,7 @@ void Escribir(int dato) {
       dataFile.close();
     }
     else {
-      Serial.println("error opening PIKA.txt");
+      Serial.println("error opening HIGHSC~1.txt");
     }
 
   }
